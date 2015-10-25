@@ -1,0 +1,13 @@
+{
+  "name": "Gladys-voicerss",
+  "version": "0.1.0",
+  "description": "Voicerss to Gladys",
+  "keywords": [],
+  "dependencies": {
+    "MD5": "^1.3.0",
+    "request": "^2.65.0",
+    "sails-util-mvcsloader": "~0.3.0"
+  },
+  "author": "TimeLord",
+  "license": "Creative Commons 3.0 France"
+}
