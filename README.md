@@ -18,7 +18,7 @@ $ npm install
 $ nano lib/defaults.js
 
 # Restart Gladys
-$ pm2 restart gladys
+$ sudo pm2 restart gladys
 ```
 
 ##Scenario actions
