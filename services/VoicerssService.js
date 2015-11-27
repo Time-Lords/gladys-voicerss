@@ -2,11 +2,12 @@
 
 if(sails.config.machine.soundCapable){
 
-	var request = require("request");
+	var request = require('request');
 	var md5 = require('MD5');
 	var fs = require('fs');
 	var lame = require('lame');
 	var Speaker = require('speaker');
+	var async = require('async');
 
 
 	/**
@@ -33,7 +34,7 @@ if(sails.config.machine.soundCapable){
 			callback(err);
 		});
 		file.on('finish', function() {
-	  		file.close(callback);
+			file.close(callback);
 		});
 	};
 
@@ -41,14 +42,16 @@ if(sails.config.machine.soundCapable){
 	 * Play a MP3
 	 * @method play
 	 * @param {} mp3
+	 * @param {} callback
 	 * @return
 	 */
-	var play = function (mp3){
+	var play = function (mp3, callback){
 		fs.createReadStream(mp3)
 		  .pipe(new lame.Decoder())
 		  .on('format', function (format) {
 		    this.pipe(new Speaker(format));
-		   });
+		    callback();
+		  });
 	};
 
 	/**
@@ -61,7 +64,6 @@ if(sails.config.machine.soundCapable){
 	 * @param {} callback
 	 * @return
 	 */
-
 	var addSpeak = function(text, mp3file, User, callback){
 		var speakObj = {
 			text:text,
@@ -75,6 +77,73 @@ if(sails.config.machine.soundCapable){
 				callback();
 		});
 	};
+
+	/**
+	 * @method say
+	 * @param {} fileObj
+	 * @param {} callback
+	 */
+	var say = function(fileObj, callback){
+		Speak.findOne({ text: fileObj.text})
+			.exec(function speakFound(err, Speak){
+				
+				if(err){
+					sails.log.info(err);
+					return callback(err);
+				}
+				 
+				if(!Speak){
+
+					var language = fileObj.User.language || sails.config.voicerss.language;
+					var mp3file = md5(fileObj.text) + '.mp3';
+					var pathToMp3 = sails.config.voicerss.cacheDirectory + mp3file;
+
+					getMp3(fileObj.text, pathToMp3, language, function(err){
+						if(err)return callback(err);
+
+						play(pathToMp3, function(){
+
+							// Estimate the duration of the given text 
+							// and call the callback when it's ended.
+							setTimeout(function(){
+								callback();
+							}, fileObj.text.length * sails.config.voicerss.charDuration);
+
+						});
+
+						if(fileObj.User.id){
+							addSpeak(fileObj.text, mp3file, fileObj.User);
+						}
+					});
+
+				}else{
+
+					// get the path to the mp3 of the sentence
+					var pathToMp3 = sails.config.voicerss.cacheDirectory + Speak.mp3file;
+					
+					// play the mp3 file
+					play(pathToMp3, function(){
+
+						// Estimate the duration of the given text 
+						// and call the callback when it's ended.
+						setTimeout(function(){
+							callback();
+						}, fileObj.text.length * sails.config.voicerss.charDuration);
+
+					});
+
+					if(fileObj.User.id){
+						// add the sentence to Speak database
+						addSpeak(fileObj.text, Speak.mp3file, fileObj.User);
+					}
+				}
+		 });
+	};
+
+	/** 
+	 * queue object to say sentence per sentence
+	 */
+	var queue = async.queue(say, 1);
 }
 
 module.exports = {
@@ -96,45 +165,10 @@ module.exports = {
 			return callback('Machine can\'t play sound');
 		}
 
-		/*if(!User || !User.language)
-			return sails.log.warn('No User with language given');*/
-
-		Speak.findOne({ text: text})
-			 .exec(function speakFound(err, Speak){
-			 		if(err){
-			 			sails.log.info(err);
-			 			return callback(err);
-			 		}
-					 
-			 		if(!Speak){
-
-			 			var language = User.language || sails.config.voicerss.language;
-			 			var mp3file = md5(text) + '.mp3';
-			 			var pathToMp3 = sails.config.voicerss.cacheDirectory + '/' + mp3file;
-
-			 			getMp3(text, pathToMp3, language, function(err){
-			 				if(err)return callback(err);
-
-			 				play(pathToMp3);
-
-			 				if(User.id){
-			 					addSpeak(text,mp3file,User);
-			 				}
-			 				callback();
-			 			});
-
-			 		}else{
-						//if text has already been said before
-			 			// get the path to the mp3 of the sentence
-			 			var pathToMp3 = sails.config.voicerss.cacheDirectory + '/' + Speak.mp3file;
-			 			// play the mp3 file
-			 			play(pathToMp3);
-			 			if(User.id){
-			 				// add the sentence to Speak database
-			 				addSpeak(text,Speak.mp3file,User);
-			 			}
-			 		}
-			 });
+		var sentences = text.split('.');
+		async.each(sentences, function(sentence){
+			queue.push({User:User, text: sentence});
+		});
 	}
 
 };
