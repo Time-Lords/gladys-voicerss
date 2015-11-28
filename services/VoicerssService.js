@@ -26,7 +26,12 @@ if(sails.config.machine.soundCapable){
 			c: sails.config.voicerss.codec,
 			f: sails.config.voicerss.audioFormat,
 		};
-		var req = request.post({url: sails.config.voicerss.apiUrl, form: post});
+		
+		var req = request.post({url: sails.config.voicerss.apiUrl, form: post}, function(err, res, body){
+			if(err)return callback(err);
+			if(res.statusCode != 200)return callback('Bad status code : '+ res.statusCode);
+			if(res.headers['content-type'] != 'audio/mpeg')return callback('Bad content-type : '+ res.headers['content-type']);
+		});
 
 		var file = fs.createWriteStream(dest);
 		req.pipe(file);
@@ -49,8 +54,11 @@ if(sails.config.machine.soundCapable){
 		fs.createReadStream(mp3)
 		  .pipe(new lame.Decoder())
 		  .on('format', function (format) {
-		    this.pipe(new Speaker(format));
-		    callback();
+		  	var speaker = new Speaker(format);
+		  	speaker.on('close', function(){
+		  		callback();
+		  	});
+		    this.pipe(speaker);
 		  });
 	};
 
@@ -99,17 +107,12 @@ if(sails.config.machine.soundCapable){
 					var pathToMp3 = sails.config.voicerss.cacheDirectory + mp3file;
 
 					getMp3(fileObj.text, pathToMp3, language, function(err){
-						if(err)return callback(err);
+						if(err){
+							sails.log.warn('VoicerssService : getMp3 : ', err);
+							return callback(err);
+						}
 
-						play(pathToMp3, function(){
-
-							// Estimate the duration of the given text 
-							// and call the callback when it's ended.
-							setTimeout(function(){
-								callback();
-							}, fileObj.text.length * sails.config.voicerss.charDuration);
-
-						});
+						play(pathToMp3, callback);
 
 						if(fileObj.User.id){
 							addSpeak(fileObj.text, mp3file, fileObj.User);
@@ -122,15 +125,7 @@ if(sails.config.machine.soundCapable){
 					var pathToMp3 = sails.config.voicerss.cacheDirectory + Speak.mp3file;
 					
 					// play the mp3 file
-					play(pathToMp3, function(){
-
-						// Estimate the duration of the given text 
-						// and call the callback when it's ended.
-						setTimeout(function(){
-							callback();
-						}, fileObj.text.length * sails.config.voicerss.charDuration);
-
-					});
+					play(pathToMp3, callback);
 
 					if(fileObj.User.id){
 						// add the sentence to Speak database
