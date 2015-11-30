@@ -55,9 +55,7 @@ if(sails.config.machine.soundCapable){
 		  .pipe(new lame.Decoder())
 		  .on('format', function (format) {
 		  	var speaker = new Speaker(format);
-		  	speaker.on('close', function(){
-		  		callback();
-		  	});
+		  	speaker.on('close', callback);
 		    this.pipe(speaker);
 		  });
 	};
@@ -162,8 +160,11 @@ module.exports = {
 
 		var sentences = text.split('.');
 		async.each(sentences, function(sentence){
-			queue.push({User:User, text: sentence});
+			if(sentence.length > 0)
+				queue.push({User:User, text: sentence});
 		});
+
+		callback();
 	}
 
 };
