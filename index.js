@@ -8,7 +8,7 @@ module.exports = function(sails) {
     notify: require('./lib/notify'),
 
     // This method can be called in a script
-    // gladys.module.voicerss.say({text:"MyText",lang:"fr-fr"})
+    // gladys.module.voicerss.say({text:"MyText", language:"fr-fr"})
     say: require('./lib/say')
 
   };
