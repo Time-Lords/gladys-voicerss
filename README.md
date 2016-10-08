@@ -37,5 +37,5 @@ If not, it means your are in another place.
 You can say a given text from a script
 
 ```
-gladys.module.voicerss.say({text:"MyText", language:"fr-fr"})
+gladys.modules.voicerss.say({text:"MyText", language:"fr-fr"})
 ```
