@@ -1,10 +1,10 @@
-#Gladys Voicerss
+# Gladys Voicerss
 Require Gladys >= 3.1.11
 
 This module use voicerss.org to say a given text.
 You need to create an account on voicerss.org to get the API key.
 
-##Installation
+## Installation
 To install this module, you need to :
 
 - Install the module in Gladys
@@ -13,7 +13,7 @@ To install this module, you need to :
  - `voicerss_key` API key of voicerss
 - Configure your notification settings in the "notification" panels in parameters
 
-##Warning
+## Warning
 - This module need libasound2-dev
 
 ```bash
@@ -33,7 +33,7 @@ If last event for this particular house and with your user ID is "back-at-home",
 
 If not, it means your are in another place.
 
-##Scripts
+## Scripts
 You can say a given text from a script
 
 ```
